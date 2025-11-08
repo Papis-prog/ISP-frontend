@@ -5,11 +5,11 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./Inscription.css";
 
-// Email et numéro de l’institut (affichage seulement)
+// Affichage seulement
 const INSTITUTE_EMAIL = "ispthies@gmail.com";
 const PAYMENT_NUMBER = "77 561 71 84";
 
-// backend : on prend d’abord la variable d’env, sinon localhost
+// URL backend : d'abord la variable d'env, sinon localhost
 const API_URL =
   process.env.REACT_APP_ISP_BACKEND_URL || "http://localhost:3500/api/inscriptions";
 
@@ -18,11 +18,11 @@ console.log("Using backend API URL:", API_URL);
 export default function Inscription() {
   const formRef = useRef(null);
 
-  // Étapes
+  // étapes
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Fiche de renseignement
+  // fiche de renseignement
   const [fiche, setFiche] = useState({
     prenom: "",
     nom: "",
@@ -40,7 +40,7 @@ export default function Inscription() {
     etab2_classe: "",
   });
 
-  // Formulaire BTS/DTS
+  // inscription BTS/DTS
   const [inscription, setInscription] = useState({
     filiere: "",
     annee: "1",
@@ -59,14 +59,14 @@ export default function Inscription() {
     modePaiement: "",
   });
 
-  // Fichiers
+  // fichiers
   const [files, setFiles] = useState({
     diplome: null,
     carteIdentite: null,
     recuPaiement: null,
   });
 
-  // Règlement
+  // règlement
   const [reglementAccepted, setReglementAccepted] = useState(false);
 
   // handlers
@@ -85,16 +85,19 @@ export default function Inscription() {
     setFiles((p) => ({ ...p, [name]: f && f[0] ? f[0] : null }));
   };
 
-  // validation par étape
+  // validation
   const validateStep = (s) => {
+    // étape 1
     if (s === 1) return reglementAccepted;
 
+    // étape 2 : minimum d'infos
     if (s === 2) {
       if (!fiche.prenom || !fiche.nom) return false;
       if (!inscription.filiere || !inscription.telephone || !inscription.email) return false;
       return true;
     }
 
+    // étape 3 : 2 fichiers min
     if (s === 3) {
       if (!files.diplome || !files.carteIdentite) return false;
       return true;
@@ -114,17 +117,17 @@ export default function Inscription() {
 
   const prev = () => setStep((s) => Math.max(1, s - 1));
 
-  // submit
+  // soumission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // on recheck tout
+    // recheck toutes les étapes obligatoires
     if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
       toast.error("Veuillez compléter toutes les étapes obligatoires avant d'envoyer.");
       return;
     }
 
-    // on construit comme le back attend
+    // construire les objets comme le backend les attend
     const ficheRenseignement = {
       prenom: fiche.prenom,
       nom: fiche.nom,
@@ -181,13 +184,15 @@ export default function Inscription() {
       reference: "",
     };
 
-    // FormData
+    // FormData multipart
     const formData = new FormData();
 
+    // fichiers
     if (files.diplome) formData.append("diplome", files.diplome);
     if (files.carteIdentite) formData.append("carteIdentite", files.carteIdentite);
     if (files.recuPaiement) formData.append("recuPaiement", files.recuPaiement);
 
+    // objets JSON
     formData.append("ficheRenseignement", JSON.stringify(ficheRenseignement));
     formData.append("etablissements", JSON.stringify(etablissements));
     formData.append("formulaireBtsDts", JSON.stringify(formulaireBtsDts));
@@ -201,14 +206,12 @@ export default function Inscription() {
         },
       });
 
-      // le back renvoie maintenant { success, emailSent, message, inscription }
+      // le back renvoie { success, emailSent, message, inscription }
       if (res.data && res.data.success) {
         toast.success("✅ Inscription enregistrée !");
-        // on affiche le message précis du back
         if (res.data.message) {
           toast.info(res.data.message);
         } else {
-          // fallback
           toast.info(
             res.data.emailSent
               ? "E-mail envoyé à l'administration."
@@ -216,7 +219,7 @@ export default function Inscription() {
           );
         }
 
-        // reset
+        // reset du formulaire
         setStep(1);
         setReglementAccepted(false);
         setFiche({
@@ -269,7 +272,7 @@ export default function Inscription() {
     }
   };
 
-  // progression
+  // progression (%)
   const progress = Math.round(((step - 1) / 3) * 100);
 
   return (
@@ -297,6 +300,7 @@ export default function Inscription() {
       {/* TITRE */}
       <div className="form-title">Formulaire d'inscription BTS/DTS 2025-2026</div>
 
+      {/* barre de progression */}
       <div className="progress-bar">
         <div className="progress" style={{ width: `${progress}%` }} />
       </div>
@@ -315,7 +319,10 @@ export default function Inscription() {
                 Le présent règlement intérieur a pour objet de définir les règles de vie commune au
                 sein de l'ISP de Thiès.
               </p>
-              {/* ... ton texte ... */}
+              <p>
+                En poursuivant l'inscription, vous acceptez l'ensemble des dispositions du
+                règlement.
+              </p>
             </div>
 
             <label className="checkbox">
