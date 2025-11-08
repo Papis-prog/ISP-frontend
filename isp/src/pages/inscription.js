@@ -5,20 +5,24 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./Inscription.css";
 
-// affichage seulement
+// Email et numéro de l’institut (affichage seulement)
 const INSTITUTE_EMAIL = "ispthies@gmail.com";
 const PAYMENT_NUMBER = "77 561 71 84";
 
-// URL backend
+// backend : on prend d’abord la variable d’env, sinon localhost
 const API_URL =
   process.env.REACT_APP_ISP_BACKEND_URL || "http://localhost:3500/api/inscriptions";
+
+console.log("Using backend API URL:", API_URL);
 
 export default function Inscription() {
   const formRef = useRef(null);
 
+  // Étapes
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // Fiche de renseignement
   const [fiche, setFiche] = useState({
     prenom: "",
     nom: "",
@@ -36,6 +40,7 @@ export default function Inscription() {
     etab2_classe: "",
   });
 
+  // Formulaire BTS/DTS
   const [inscription, setInscription] = useState({
     filiere: "",
     annee: "1",
@@ -54,14 +59,17 @@ export default function Inscription() {
     modePaiement: "",
   });
 
+  // Fichiers
   const [files, setFiles] = useState({
     diplome: null,
     carteIdentite: null,
     recuPaiement: null,
   });
 
+  // Règlement
   const [reglementAccepted, setReglementAccepted] = useState(false);
 
+  // handlers
   const handleFicheChange = (e) => {
     const { name, value } = e.target;
     setFiche((p) => ({ ...p, [name]: value }));
@@ -77,20 +85,25 @@ export default function Inscription() {
     setFiles((p) => ({ ...p, [name]: f && f[0] ? f[0] : null }));
   };
 
+  // validation par étape
   const validateStep = (s) => {
     if (s === 1) return reglementAccepted;
+
     if (s === 2) {
       if (!fiche.prenom || !fiche.nom) return false;
       if (!inscription.filiere || !inscription.telephone || !inscription.email) return false;
       return true;
     }
+
     if (s === 3) {
       if (!files.diplome || !files.carteIdentite) return false;
       return true;
     }
+
     return true;
   };
 
+  // navigation
   const next = () => {
     if (!validateStep(step)) {
       toast.error("Veuillez compléter les champs obligatoires.");
@@ -101,14 +114,17 @@ export default function Inscription() {
 
   const prev = () => setStep((s) => Math.max(1, s - 1));
 
+  // submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // on recheck tout
     if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
       toast.error("Veuillez compléter toutes les étapes obligatoires avant d'envoyer.");
       return;
     }
 
+    // on construit comme le back attend
     const ficheRenseignement = {
       prenom: fiche.prenom,
       nom: fiche.nom,
@@ -154,6 +170,7 @@ export default function Inscription() {
       },
     };
 
+    // paiement
     let mode = "AUCUN";
     if (inscription.modePaiement === "Institut") mode = "INSTITUT";
     if (inscription.modePaiement === "Wave") mode = "WAVE";
@@ -164,6 +181,7 @@ export default function Inscription() {
       reference: "",
     };
 
+    // FormData
     const formData = new FormData();
 
     if (files.diplome) formData.append("diplome", files.diplome);
@@ -178,14 +196,24 @@ export default function Inscription() {
     setLoading(true);
     try {
       const res = await axios.post(API_URL, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
+      // le back renvoie maintenant { success, emailSent, message, inscription }
       if (res.data && res.data.success) {
         toast.success("✅ Inscription enregistrée !");
-        // le back t'explique si le mail est parti ou pas
+        // on affiche le message précis du back
         if (res.data.message) {
           toast.info(res.data.message);
+        } else {
+          // fallback
+          toast.info(
+            res.data.emailSent
+              ? "E-mail envoyé à l'administration."
+              : "Inscription OK. E-mail non envoyé."
+          );
         }
 
         // reset
@@ -226,6 +254,7 @@ export default function Inscription() {
         });
         setFiles({ diplome: null, carteIdentite: null, recuPaiement: null });
 
+        // petite redirection
         setTimeout(() => {
           window.location.href = "/";
         }, 2000);
@@ -240,13 +269,14 @@ export default function Inscription() {
     }
   };
 
+  // progression
   const progress = Math.round(((step - 1) / 3) * 100);
 
   return (
     <div className="insc-wrap">
       <ToastContainer position="top-right" autoClose={4000} />
 
-      {/* header */}
+      {/* HEADER */}
       <header className="insc-header">
         <div className="header-left">
           <img src="logos/institut.jpg" alt="Logo ISP" className="logo" />
@@ -264,6 +294,7 @@ export default function Inscription() {
         </div>
       </header>
 
+      {/* TITRE */}
       <div className="form-title">Formulaire d'inscription BTS/DTS 2025-2026</div>
 
       <div className="progress-bar">
@@ -280,16 +311,23 @@ export default function Inscription() {
             <h2>Étape 1 — Règlement intérieur & conditions</h2>
             <div className="reglement-box">
               <h3>Préambule</h3>
-              <p>Le présent règlement intérieur a pour objet...</p>
+              <p>
+                Le présent règlement intérieur a pour objet de définir les règles de vie commune au
+                sein de l'ISP de Thiès.
+              </p>
+              {/* ... ton texte ... */}
             </div>
+
             <label className="checkbox">
               <input
                 type="checkbox"
                 checked={reglementAccepted}
                 onChange={(e) => setReglementAccepted(e.target.checked)}
+                name="reglementAccepted"
               />
-              <span>J'ai lu et j'accepte le règlement intérieur et les conditions d'admission</span>
+              <span> J'ai lu et j'accepte le règlement intérieur et les conditions d'admission</span>
             </label>
+
             <div className="nav">
               <button type="button" className="btn" onClick={next}>
                 Suivant →
@@ -302,53 +340,178 @@ export default function Inscription() {
         {step === 2 && (
           <section className="step">
             <h2>Étape 2 — Fiche de renseignement & Inscription BTS/DTS</h2>
+
             <h3>Fiche de renseignement</h3>
             <div className="grid">
-              <label>Prénom<input name="prenom" value={fiche.prenom} onChange={handleFicheChange} /></label>
-              <label>Nom<input name="nom" value={fiche.nom} onChange={handleFicheChange} /></label>
-              <label>Né(e) le<input type="date" name="neLe" value={fiche.neLe} onChange={handleFicheChange} /></label>
-              <label>À (lieu)<input name="a" value={fiche.a} onChange={handleFicheChange} /></label>
-              <label>Adresse<input name="adresse" value={fiche.adresse} onChange={handleFicheChange} /></label>
-              <label>Baccalauréat (année)<input name="bac_obtenu" value={fiche.bac_obtenu} onChange={handleFicheChange} /></label>
-              <label>Mention<input name="bac_mention" value={fiche.bac_mention} onChange={handleFicheChange} /></label>
+              <label>
+                Prénom
+                <input name="prenom" value={fiche.prenom} onChange={handleFicheChange} />
+              </label>
+              <label>
+                Nom
+                <input name="nom" value={fiche.nom} onChange={handleFicheChange} />
+              </label>
+              <label>
+                Né(e) le
+                <input type="date" name="neLe" value={fiche.neLe} onChange={handleFicheChange} />
+              </label>
+              <label>
+                À (lieu)
+                <input name="a" value={fiche.a} onChange={handleFicheChange} />
+              </label>
+              <label>
+                Adresse
+                <input name="adresse" value={fiche.adresse} onChange={handleFicheChange} />
+              </label>
+              <label>
+                Baccalauréat (année)
+                <input name="bac_obtenu" value={fiche.bac_obtenu} onChange={handleFicheChange} />
+              </label>
+              <label>
+                Mention
+                <input name="bac_mention" value={fiche.bac_mention} onChange={handleFicheChange} />
+              </label>
             </div>
 
             <h4>Établissements (2 dernières années)</h4>
             <div className="grid">
-              <label>Année<input name="etab1_annee" value={fiche.etab1_annee} onChange={handleFicheChange} /></label>
-              <label>Établissement<input name="etab1_nom" value={fiche.etab1_nom} onChange={handleFicheChange} /></label>
-              <label>Classe<input name="etab1_classe" value={fiche.etab1_classe} onChange={handleFicheChange} /></label>
-              <label>Année<input name="etab2_annee" value={fiche.etab2_annee} onChange={handleFicheChange} /></label>
-              <label>Établissement<input name="etab2_nom" value={fiche.etab2_nom} onChange={handleFicheChange} /></label>
-              <label>Classe<input name="etab2_classe" value={fiche.etab2_classe} onChange={handleFicheChange} /></label>
+              <label>
+                Année
+                <input
+                  name="etab1_annee"
+                  value={fiche.etab1_annee}
+                  onChange={handleFicheChange}
+                />
+              </label>
+              <label>
+                Établissement
+                <input name="etab1_nom" value={fiche.etab1_nom} onChange={handleFicheChange} />
+              </label>
+              <label>
+                Classe
+                <input
+                  name="etab1_classe"
+                  value={fiche.etab1_classe}
+                  onChange={handleFicheChange}
+                />
+              </label>
+              <label>
+                Année
+                <input
+                  name="etab2_annee"
+                  value={fiche.etab2_annee}
+                  onChange={handleFicheChange}
+                />
+              </label>
+              <label>
+                Établissement
+                <input name="etab2_nom" value={fiche.etab2_nom} onChange={handleFicheChange} />
+              </label>
+              <label>
+                Classe
+                <input
+                  name="etab2_classe"
+                  value={fiche.etab2_classe}
+                  onChange={handleFicheChange}
+                />
+              </label>
             </div>
 
             <h3>Formulaire d'inscription BTS/DTS</h3>
             <div className="grid">
-              <label>Filière<input name="filiere" value={inscription.filiere} onChange={handleInsChange} /></label>
-              <label>Année
+              <label>
+                Filière
+                <input name="filiere" value={inscription.filiere} onChange={handleInsChange} />
+              </label>
+              <label>
+                Année
                 <select name="annee" value={inscription.annee} onChange={handleInsChange}>
                   <option value="1">1</option>
                   <option value="2">2</option>
                 </select>
               </label>
-              <label>Nom<input name="nom" value={inscription.nom} onChange={handleInsChange} /></label>
-              <label>Prénom<input name="prenom" value={inscription.prenom} onChange={handleInsChange} /></label>
-              <label>Date naissance<input type="date" name="dateNaissance" value={inscription.dateNaissance} onChange={handleInsChange} /></label>
-              <label>Lieu naissance<input name="lieuNaissance" value={inscription.lieuNaissance} onChange={handleInsChange} /></label>
-              <label>Dernier diplôme (intitulé)<input name="dernierDiplome_intitule" value={inscription.dernierDiplome_intitule} onChange={handleInsChange} /></label>
-              <label>Obtenu en (année)<input name="dernierDiplome_obtenuEn" value={inscription.dernierDiplome_obtenuEn} onChange={handleInsChange} /></label>
-              <label>Adresse<input name="adresse" value={inscription.adresse} onChange={handleInsChange} /></label>
-              <label>Téléphone<input name="telephone" value={inscription.telephone} onChange={handleInsChange} /></label>
-              <label>Email<input name="email" value={inscription.email} onChange={handleInsChange} /></label>
-              <label>Nom tuteur<input name="tuteur_nom" value={inscription.tuteur_nom} onChange={handleInsChange} /></label>
-              <label>Prénom tuteur<input name="tuteur_prenom" value={inscription.tuteur_prenom} onChange={handleInsChange} /></label>
-              <label>Téléphone tuteur<input name="tuteur_telephone" value={inscription.tuteur_telephone} onChange={handleInsChange} /></label>
+              <label>
+                Nom
+                <input name="nom" value={inscription.nom} onChange={handleInsChange} />
+              </label>
+              <label>
+                Prénom
+                <input name="prenom" value={inscription.prenom} onChange={handleInsChange} />
+              </label>
+              <label>
+                Date naissance
+                <input
+                  type="date"
+                  name="dateNaissance"
+                  value={inscription.dateNaissance}
+                  onChange={handleInsChange}
+                />
+              </label>
+              <label>
+                Lieu naissance
+                <input
+                  name="lieuNaissance"
+                  value={inscription.lieuNaissance}
+                  onChange={handleInsChange}
+                />
+              </label>
+              <label>
+                Dernier diplôme (intitulé)
+                <input
+                  name="dernierDiplome_intitule"
+                  value={inscription.dernierDiplome_intitule}
+                  onChange={handleInsChange}
+                />
+              </label>
+              <label>
+                Obtenu en (année)
+                <input
+                  name="dernierDiplome_obtenuEn"
+                  value={inscription.dernierDiplome_obtenuEn}
+                  onChange={handleInsChange}
+                />
+              </label>
+              <label>
+                Adresse
+                <input name="adresse" value={inscription.adresse} onChange={handleInsChange} />
+              </label>
+              <label>
+                Téléphone
+                <input name="telephone" value={inscription.telephone} onChange={handleInsChange} />
+              </label>
+              <label>
+                Email
+                <input name="email" value={inscription.email} onChange={handleInsChange} />
+              </label>
+              <label>
+                Nom tuteur
+                <input name="tuteur_nom" value={inscription.tuteur_nom} onChange={handleInsChange} />
+              </label>
+              <label>
+                Prénom tuteur
+                <input
+                  name="tuteur_prenom"
+                  value={inscription.tuteur_prenom}
+                  onChange={handleInsChange}
+                />
+              </label>
+              <label>
+                Téléphone tuteur
+                <input
+                  name="tuteur_telephone"
+                  value={inscription.tuteur_telephone}
+                  onChange={handleInsChange}
+                />
+              </label>
             </div>
 
             <div className="nav">
-              <button type="button" className="btn light" onClick={prev}>← Précédent</button>
-              <button type="button" className="btn" onClick={next}>Suivant →</button>
+              <button type="button" className="btn light" onClick={prev}>
+                ← Précédent
+              </button>
+              <button type="button" className="btn" onClick={next}>
+                Suivant →
+              </button>
             </div>
           </section>
         )}
@@ -357,23 +520,42 @@ export default function Inscription() {
         {step === 3 && (
           <section className="step">
             <h2>Étape 3 — Joindre les documents demandés</h2>
-            <p>Formats acceptés : PDF, JPG, PNG.</p>
+            <p>Formats acceptés : PDF, JPG, PNG. Taille recommandée ≤ 5 Mo.</p>
 
             <label className="file">
               Diplôme (scan / PDF) *
-              <input type="file" name="diplome" accept=".pdf,image/*" onChange={handleFileChange} required />
+              <input
+                type="file"
+                name="diplome"
+                accept=".pdf,image/*"
+                onChange={handleFileChange}
+                required
+              />
             </label>
 
             <label className="file">
               Carte d'identité légalisée *
-              <input type="file" name="carteIdentite" accept=".pdf,image/*" onChange={handleFileChange} required />
+              <input
+                type="file"
+                name="carteIdentite"
+                accept=".pdf,image/*"
+                onChange={handleFileChange}
+                required
+              />
             </label>
 
-            <p>Vous pourrez joindre le reçu de paiement à l’étape suivante.</p>
+            <p>
+              Si vous payez par Wave ou Orange Money, vous pourrez joindre la capture du reçu à
+              l'étape suivante.
+            </p>
 
             <div className="nav">
-              <button type="button" className="btn light" onClick={prev}>← Précédent</button>
-              <button type="button" className="btn" onClick={next}>Suivant →</button>
+              <button type="button" className="btn light" onClick={prev}>
+                ← Précédent
+              </button>
+              <button type="button" className="btn" onClick={next}>
+                Suivant →
+              </button>
             </div>
           </section>
         )}
@@ -382,10 +564,21 @@ export default function Inscription() {
         {step === 4 && (
           <section className="step">
             <h2>Étape 4 — Indications de paiement</h2>
-            <p>Wave / OM : {PAYMENT_NUMBER}</p>
+            <p>
+              Veuillez passer à l'école pour payer les frais d'inscription. Vous pouvez aussi payer
+              via Wave ou Orange Money :
+            </p>
+            <ul>
+              <li>
+                <strong>Wave :</strong> {PAYMENT_NUMBER}
+              </li>
+              <li>
+                <strong>Orange Money :</strong> {PAYMENT_NUMBER}
+              </li>
+            </ul>
 
             <label>
-              Mode de paiement
+              Mode de paiement (si déjà payé)
               <select
                 name="modePaiement"
                 value={inscription.modePaiement || ""}
@@ -401,7 +594,7 @@ export default function Inscription() {
             {(inscription.modePaiement === "Wave" ||
               inscription.modePaiement === "Orange Money") && (
               <label className="file">
-                Reçu de paiement *
+                Téléverser la capture du reçu de paiement *
                 <input
                   type="file"
                   name="recuPaiement"
@@ -412,8 +605,14 @@ export default function Inscription() {
               </label>
             )}
 
+            <p className="note">
+              Tous les fichiers que vous joignez seront envoyés à l'administration pour vérification.
+            </p>
+
             <div className="nav">
-              <button type="button" className="btn light" onClick={prev}>← Précédent</button>
+              <button type="button" className="btn light" onClick={prev}>
+                ← Précédent
+              </button>
               <button type="submit" className="btn primary" disabled={loading}>
                 {loading ? "Envoi..." : "Terminer / Envoyer"}
               </button>
