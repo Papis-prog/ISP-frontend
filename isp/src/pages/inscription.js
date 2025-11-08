@@ -209,7 +209,7 @@ export default function Inscription() {
       // le back peut renvoyer success: true même si le mail n'est pas parti
       if (res.data && res.data.success) {
         toast.success("✅ Inscription enregistrée !");
-        // afficher le message du back (par ex. "mail pas envoyé")
+        // afficher le message du back (ex: "mail pas envoyé")
         if (res.data.message) {
           toast.info(res.data.message);
         } else {
@@ -316,26 +316,7 @@ export default function Inscription() {
                 Le présent règlement intérieur a pour objet de définir les règles de vie commune au
                 sein de l'ISP de Thiès. Il s'applique à l'ensemble des étudiants...
               </p>
-              <h4>Article 1: Discipline et tenue vestimentaire</h4>
-              <p>
-                1. Le port de l'uniforme officiel de l'ISP est obligatoire.
-                <br />
-                2. L'uniforme doit être accompagné de chaussures fermées.
-                <br />
-                3. Tout manquement à cette règle entraîne l'exclusion immédiate...
-              </p>
-              <h4>Article 2: Frais de scolarité</h4>
-              <p>
-                1. Les frais d'inscription sont non remboursables...
-                <br />
-                2. Quelle que soit la date d'inscription, l'étudiant est tenu...
-              </p>
-              {/* ... tu peux garder tout ton texte initial ici ... */}
-              <p>
-                <strong>
-                  En vous inscrivant, vous acceptez sans condition le règlement intérieur.
-                </strong>
-              </p>
+              {/* ... ton texte ... */}
             </div>
 
             <label className="checkbox">
