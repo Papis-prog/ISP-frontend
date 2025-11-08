@@ -9,11 +9,11 @@ import "./Inscription.css";
 const INSTITUTE_EMAIL = "ispthies@gmail.com";
 const PAYMENT_NUMBER = "77 561 71 84";
 
-// URL de ton backend (on essaie d'abord avec la variable d'env)
+// URL de ton backend (variable d'env d'abord, sinon localhost)
 const API_URL =
   process.env.REACT_APP_ISP_BACKEND_URL || "http://localhost:3500/api/inscriptions";
 
-  console.log("Using backend API URL:", API_URL);
+console.log("Using backend API URL:", API_URL);
 
 export default function Inscription() {
   const formRef = useRef(null);
@@ -206,13 +206,17 @@ export default function Inscription() {
         },
       });
 
-      if (res.data.success) {
-        // 1. toast de succès
-        toast.success("✅ Inscription envoyée avec succès !");
-        // 2. toast d’info
-        toast.info("Nous allons vous recontacter sous peu.");
+      // le back peut renvoyer success: true même si le mail n'est pas parti
+      if (res.data && res.data.success) {
+        toast.success("✅ Inscription enregistrée !");
+        // afficher le message du back (par ex. "mail pas envoyé")
+        if (res.data.message) {
+          toast.info(res.data.message);
+        } else {
+          toast.info("Nous allons vous recontacter sous peu.");
+        }
 
-        // 3. reset du formulaire
+        // reset du formulaire
         setStep(1);
         setReglementAccepted(false);
         setFiche({
@@ -250,12 +254,12 @@ export default function Inscription() {
         });
         setFiles({ diplome: null, carteIdentite: null, recuPaiement: null });
 
-        // 4. redirection vers la home après un petit délai
+        // redirection vers la page d'accueil
         setTimeout(() => {
           window.location.href = "/";
         }, 2000);
       } else {
-        toast.error(res.data.message || "Erreur d’envoi — vérifiez le serveur.");
+        toast.error(res.data?.message || "Erreur d’envoi — vérifiez le serveur.");
       }
     } catch (err) {
       console.error("Erreur lors de l'envoi :", err);
@@ -302,7 +306,7 @@ export default function Inscription() {
       <form ref={formRef} className="insc-form" onSubmit={handleSubmit}>
         <input type="hidden" name="institute_email" value={INSTITUTE_EMAIL} />
 
-        {/* Étape 1 */}
+        {/* ---------- ETAPE 1 ---------- */}
         {step === 1 && (
           <section className="step">
             <h2>Étape 1 — Règlement intérieur & conditions</h2>
@@ -310,9 +314,28 @@ export default function Inscription() {
               <h3>Préambule</h3>
               <p>
                 Le présent règlement intérieur a pour objet de définir les règles de vie commune au
-                sein de l'ISP de Thiès.
+                sein de l'ISP de Thiès. Il s'applique à l'ensemble des étudiants...
               </p>
-              {/* ... reste de ton règlement ... */}
+              <h4>Article 1: Discipline et tenue vestimentaire</h4>
+              <p>
+                1. Le port de l'uniforme officiel de l'ISP est obligatoire.
+                <br />
+                2. L'uniforme doit être accompagné de chaussures fermées.
+                <br />
+                3. Tout manquement à cette règle entraîne l'exclusion immédiate...
+              </p>
+              <h4>Article 2: Frais de scolarité</h4>
+              <p>
+                1. Les frais d'inscription sont non remboursables...
+                <br />
+                2. Quelle que soit la date d'inscription, l'étudiant est tenu...
+              </p>
+              {/* ... tu peux garder tout ton texte initial ici ... */}
+              <p>
+                <strong>
+                  En vous inscrivant, vous acceptez sans condition le règlement intérieur.
+                </strong>
+              </p>
             </div>
 
             <label className="checkbox">
@@ -333,7 +356,7 @@ export default function Inscription() {
           </section>
         )}
 
-        {/* Étape 2 */}
+        {/* ---------- ETAPE 2 ---------- */}
         {step === 2 && (
           <section className="step">
             <h2>Étape 2 — Fiche de renseignement & Inscription BTS/DTS</h2>
@@ -513,7 +536,7 @@ export default function Inscription() {
           </section>
         )}
 
-        {/* Étape 3 */}
+        {/* ---------- ETAPE 3 ---------- */}
         {step === 3 && (
           <section className="step">
             <h2>Étape 3 — Joindre les documents demandés</h2>
@@ -557,7 +580,7 @@ export default function Inscription() {
           </section>
         )}
 
-        {/* Étape 4 */}
+        {/* ---------- ETAPE 4 ---------- */}
         {step === 4 && (
           <section className="step">
             <h2>Étape 4 — Indications de paiement</h2>
@@ -603,8 +626,7 @@ export default function Inscription() {
             )}
 
             <p className="note">
-              Tous les fichiers que vous joignez seront envoyés par e-mail à l'administration pour
-              vérification.
+              Tous les fichiers que vous joignez seront envoyés à l'administration pour vérification.
             </p>
 
             <div className="nav">
