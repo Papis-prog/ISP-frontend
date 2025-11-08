@@ -5,11 +5,11 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./Inscription.css";
 
-// Email et numéro de l’institut (affichage uniquement côté front)
+// Email et numéro de l’institut (affichage seulement)
 const INSTITUTE_EMAIL = "ispthies@gmail.com";
 const PAYMENT_NUMBER = "77 561 71 84";
 
-// URL de ton backend (variable d'env d'abord, sinon localhost)
+// backend : on prend d’abord la variable d’env, sinon localhost
 const API_URL =
   process.env.REACT_APP_ISP_BACKEND_URL || "http://localhost:3500/api/inscriptions";
 
@@ -18,11 +18,11 @@ console.log("Using backend API URL:", API_URL);
 export default function Inscription() {
   const formRef = useRef(null);
 
-  // Étapes du formulaire
+  // Étapes
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Fiche de renseignement (étape 2)
+  // Fiche de renseignement
   const [fiche, setFiche] = useState({
     prenom: "",
     nom: "",
@@ -40,7 +40,7 @@ export default function Inscription() {
     etab2_classe: "",
   });
 
-  // Inscription BTS/DTS (étape 2 + 4)
+  // Formulaire BTS/DTS
   const [inscription, setInscription] = useState({
     filiere: "",
     annee: "1",
@@ -51,28 +51,25 @@ export default function Inscription() {
     adresse: "",
     telephone: "",
     email: "",
-    // diplôme
     dernierDiplome_intitule: "",
     dernierDiplome_obtenuEn: "",
-    // tuteur
     tuteur_nom: "",
     tuteur_prenom: "",
     tuteur_telephone: "",
-    // paiement
     modePaiement: "",
   });
 
-  // Fichiers (étape 3 + 4)
+  // Fichiers
   const [files, setFiles] = useState({
     diplome: null,
     carteIdentite: null,
     recuPaiement: null,
   });
 
-  // Règlement accepté (étape 1)
+  // Règlement
   const [reglementAccepted, setReglementAccepted] = useState(false);
 
-  // Handlers
+  // handlers
   const handleFicheChange = (e) => {
     const { name, value } = e.target;
     setFiche((p) => ({ ...p, [name]: value }));
@@ -88,25 +85,25 @@ export default function Inscription() {
     setFiles((p) => ({ ...p, [name]: f && f[0] ? f[0] : null }));
   };
 
-  // Validation par étape
+  // validation par étape
   const validateStep = (s) => {
-    if (s === 1) {
-      return reglementAccepted;
-    }
+    if (s === 1) return reglementAccepted;
+
     if (s === 2) {
       if (!fiche.prenom || !fiche.nom) return false;
-      if (!inscription.filiere || !inscription.telephone || !inscription.email)
-        return false;
+      if (!inscription.filiere || !inscription.telephone || !inscription.email) return false;
       return true;
     }
+
     if (s === 3) {
       if (!files.diplome || !files.carteIdentite) return false;
       return true;
     }
+
     return true;
   };
 
-  // Navigation
+  // navigation
   const next = () => {
     if (!validateStep(step)) {
       toast.error("Veuillez compléter les champs obligatoires.");
@@ -117,17 +114,17 @@ export default function Inscription() {
 
   const prev = () => setStep((s) => Math.max(1, s - 1));
 
-  // Soumission du formulaire
+  // submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // on s’assure que toutes les étapes obligatoires sont ok
+    // on recheck tout
     if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
       toast.error("Veuillez compléter toutes les étapes obligatoires avant d'envoyer.");
       return;
     }
 
-    // 1) construire les objets comme le backend les attend
+    // on construit comme le back attend
     const ficheRenseignement = {
       prenom: fiche.prenom,
       nom: fiche.nom,
@@ -173,7 +170,7 @@ export default function Inscription() {
       },
     };
 
-    // paiement (backend)
+    // paiement
     let mode = "AUCUN";
     if (inscription.modePaiement === "Institut") mode = "INSTITUT";
     if (inscription.modePaiement === "Wave") mode = "WAVE";
@@ -184,15 +181,13 @@ export default function Inscription() {
       reference: "",
     };
 
-    // 2) construire le FormData
+    // FormData
     const formData = new FormData();
 
-    // fichiers
     if (files.diplome) formData.append("diplome", files.diplome);
     if (files.carteIdentite) formData.append("carteIdentite", files.carteIdentite);
     if (files.recuPaiement) formData.append("recuPaiement", files.recuPaiement);
 
-    // objets JSON -> on stringify car on est en multipart
     formData.append("ficheRenseignement", JSON.stringify(ficheRenseignement));
     formData.append("etablissements", JSON.stringify(etablissements));
     formData.append("formulaireBtsDts", JSON.stringify(formulaireBtsDts));
@@ -206,17 +201,22 @@ export default function Inscription() {
         },
       });
 
-      // le back peut renvoyer success: true même si le mail n'est pas parti
+      // le back renvoie maintenant { success, emailSent, message, inscription }
       if (res.data && res.data.success) {
         toast.success("✅ Inscription enregistrée !");
-        // afficher le message du back (ex: "mail pas envoyé")
+        // on affiche le message précis du back
         if (res.data.message) {
           toast.info(res.data.message);
         } else {
-          toast.info("Nous allons vous recontacter sous peu.");
+          // fallback
+          toast.info(
+            res.data.emailSent
+              ? "E-mail envoyé à l'administration."
+              : "Inscription OK. E-mail non envoyé."
+          );
         }
 
-        // reset du formulaire
+        // reset
         setStep(1);
         setReglementAccepted(false);
         setFiche({
@@ -254,7 +254,7 @@ export default function Inscription() {
         });
         setFiles({ diplome: null, carteIdentite: null, recuPaiement: null });
 
-        // redirection vers la page d'accueil
+        // petite redirection
         setTimeout(() => {
           window.location.href = "/";
         }, 2000);
@@ -269,15 +269,14 @@ export default function Inscription() {
     }
   };
 
-  // progress bar percent (0..100)
+  // progression
   const progress = Math.round(((step - 1) / 3) * 100);
 
   return (
     <div className="insc-wrap">
-      {/* Toast */}
       <ToastContainer position="top-right" autoClose={4000} />
 
-      {/* === HEADER === */}
+      {/* HEADER */}
       <header className="insc-header">
         <div className="header-left">
           <img src="logos/institut.jpg" alt="Logo ISP" className="logo" />
@@ -295,7 +294,7 @@ export default function Inscription() {
         </div>
       </header>
 
-      {/* === TITRE FORMULAIRE === */}
+      {/* TITRE */}
       <div className="form-title">Formulaire d'inscription BTS/DTS 2025-2026</div>
 
       <div className="progress-bar">
@@ -306,7 +305,7 @@ export default function Inscription() {
       <form ref={formRef} className="insc-form" onSubmit={handleSubmit}>
         <input type="hidden" name="institute_email" value={INSTITUTE_EMAIL} />
 
-        {/* ---------- ETAPE 1 ---------- */}
+        {/* ÉTAPE 1 */}
         {step === 1 && (
           <section className="step">
             <h2>Étape 1 — Règlement intérieur & conditions</h2>
@@ -314,7 +313,7 @@ export default function Inscription() {
               <h3>Préambule</h3>
               <p>
                 Le présent règlement intérieur a pour objet de définir les règles de vie commune au
-                sein de l'ISP de Thiès. Il s'applique à l'ensemble des étudiants...
+                sein de l'ISP de Thiès.
               </p>
               {/* ... ton texte ... */}
             </div>
@@ -337,7 +336,7 @@ export default function Inscription() {
           </section>
         )}
 
-        {/* ---------- ETAPE 2 ---------- */}
+        {/* ÉTAPE 2 */}
         {step === 2 && (
           <section className="step">
             <h2>Étape 2 — Fiche de renseignement & Inscription BTS/DTS</h2>
@@ -517,7 +516,7 @@ export default function Inscription() {
           </section>
         )}
 
-        {/* ---------- ETAPE 3 ---------- */}
+        {/* ÉTAPE 3 */}
         {step === 3 && (
           <section className="step">
             <h2>Étape 3 — Joindre les documents demandés</h2>
@@ -546,8 +545,8 @@ export default function Inscription() {
             </label>
 
             <p>
-              Si vous paierez par Wave ou Orange Money, vous pourrez joindre la capture du reçu à
-              l'étape suivante (ou ici).
+              Si vous payez par Wave ou Orange Money, vous pourrez joindre la capture du reçu à
+              l'étape suivante.
             </p>
 
             <div className="nav">
@@ -561,7 +560,7 @@ export default function Inscription() {
           </section>
         )}
 
-        {/* ---------- ETAPE 4 ---------- */}
+        {/* ÉTAPE 4 */}
         {step === 4 && (
           <section className="step">
             <h2>Étape 4 — Indications de paiement</h2>
